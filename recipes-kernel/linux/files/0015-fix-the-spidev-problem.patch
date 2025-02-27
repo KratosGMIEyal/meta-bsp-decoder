@@ -1,0 +1,22 @@
+From edd61e6e551507f92c286693709154b56ca46315 Mon Sep 17 00:00:00 2001
+From: Orel Eliyahu <orel_e@eyal-emi.co.il>
+Date: Wed, 5 Feb 2025 18:15:57 +0200
+Subject: [PATCH] fix the spidev problem
+
+---
+ arch/arm64/boot/dts/freescale/imx8mp.dtsi | 2 ++
+ 1 file changed, 2 insertions(+)
+
+diff --git a/arch/arm64/boot/dts/freescale/imx8mp.dtsi b/arch/arm64/boot/dts/freescale/imx8mp.dtsi
+index 7e71a112c618..acfa16408de3 100644
+--- a/arch/arm64/boot/dts/freescale/imx8mp.dtsi
++++ b/arch/arm64/boot/dts/freescale/imx8mp.dtsi
+@@ -39,6 +39,8 @@ aliases {
+ 		serial2 = &uart3;
+ 		serial3 = &uart4;
+ 		spi0 = &flexspi;
++		spi1 = &ecspi2;
++		spi2 = &ecspi3;
+ 		isi0 = &isi_0;
+ 		isi1 = &isi_1;
+ 		csi0 = &mipi_csi_0;

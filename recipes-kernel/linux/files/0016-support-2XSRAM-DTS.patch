@@ -1,0 +1,99 @@
+From 79cb9dd44b3c6f18567dfe4f9e474ccf7ee8babd Mon Sep 17 00:00:00 2001
+From: Orel Eliyahu <orel_e@eyal-emi.co.il>
+Date: Wed, 26 Feb 2025 08:42:35 +0200
+Subject: [PATCH] support 2XSRAM DTS
+
+---
+ arch/arm64/boot/dts/freescale/imx8mp-evk.dts | 45 +++++++++++++++++++-
+ arch/arm64/boot/dts/freescale/imx8mp.dtsi    |  1 +
+ 2 files changed, 44 insertions(+), 2 deletions(-)
+
+diff --git a/arch/arm64/boot/dts/freescale/imx8mp-evk.dts b/arch/arm64/boot/dts/freescale/imx8mp-evk.dts
+index e6185ce58157..91fcf71d7733 100644
+--- a/arch/arm64/boot/dts/freescale/imx8mp-evk.dts
++++ b/arch/arm64/boot/dts/freescale/imx8mp-evk.dts
+@@ -282,6 +282,28 @@ &aud2htx {
+ 	status = "okay";
+ };
+ 
++&ecspi1 {
++	#address-cells = <1>;
++	#size-cells = <0>;
++	fsl,spi-num-chipselects = <2>;
++	pinctrl-names = "default";
++	pinctrl-0 = <&pinctrl_ecspi1 &pinctrl_ecspi1_cs>;
++	cs-gpios = <&gpio5 9 GPIO_ACTIVE_LOW>, <&gpio2 6 GPIO_ACTIVE_LOW>;
++	status = "okay";
++
++	    spidev4: spi@0 {
++		compatible = "rohm,dh2228fv";
++		reg = <0>;
++		spi-max-frequency = <20000000>;
++	    };
++
++	    spidev3: spi@1 {
++		compatible = "rohm,dh2228fv";
++		reg = <1>;
++		spi-max-frequency = <20000000>;
++	    };
++};
++
+ &ecspi3 {
+ 	#address-cells = <1>;
+ 	#size-cells = <0>;
+@@ -345,7 +367,12 @@ &i2c1 {
+ 	pinctrl-names = "default";
+ 	pinctrl-0 = <&pinctrl_i2c1>;
+ 	status = "okay";
+-
++	 at24@50 { /* EEPROM at 0x50 (A0, A1, A2 = 0) */
++		compatible = "atmel,24c02";
++		reg = <0x50>;
++		pagesize = <8>;
++		size = <256>; /* 2Kb = 256 Bytes */
++	    };
+ 	pmic@25 {
+ 		compatible = "nxp,pca9450c";
+ 		reg = <0x25>;
+@@ -876,6 +903,21 @@ MX8MP_IOMUXC_UART2_TXD__ECSPI3_SS0         0x00000106
+ 		>;
+ 	};
+ 	
++	pinctrl_ecspi1: ecspi1grp {
++		fsl,pins = <
++                  MX8MP_IOMUXC_ECSPI1_MISO__ECSPI1_MISO      0x00000106
++                  MX8MP_IOMUXC_ECSPI1_MOSI__ECSPI1_MOSI      0x00000106
++                  MX8MP_IOMUXC_ECSPI1_SCLK__ECSPI1_SCLK      0x00000106
++		>;
++	};
++
++	pinctrl_ecspi1_cs: ecspi1cs {
++		fsl,pins = <
++                  MX8MP_IOMUXC_ECSPI1_SS0__GPIO5_IO09        0x00000106
++            	  MX8MP_IOMUXC_SD1_DATA4__GPIO2_IO06         0x00000106
++		>;
++	};	
++	
+ 	
+ 
+ 	pinctrl_eqos: eqosgrp {
+@@ -990,7 +1032,6 @@ MX8MP_IOMUXC_GPIO1_IO08__GPIO1_IO08	0x16
+ 	pinctrl_pcie: pciegrp {
+ 		fsl,pins = <
+ 			MX8MP_IOMUXC_I2C4_SCL__PCIE_CLKREQ_B		0x60 /* open drain, pull up */
+-			MX8MP_IOMUXC_SD1_DATA4__GPIO2_IO06		0x40
+ 			MX8MP_IOMUXC_SD1_DATA5__GPIO2_IO07		0x40
+ 			MX8MP_IOMUXC_I2C4_SDA__GPIO5_IO21		0x1c4
+ 		>;
+diff --git a/arch/arm64/boot/dts/freescale/imx8mp.dtsi b/arch/arm64/boot/dts/freescale/imx8mp.dtsi
+index acfa16408de3..cca377992263 100644
+--- a/arch/arm64/boot/dts/freescale/imx8mp.dtsi
++++ b/arch/arm64/boot/dts/freescale/imx8mp.dtsi
+@@ -41,6 +41,7 @@ aliases {
+ 		spi0 = &flexspi;
+ 		spi1 = &ecspi2;
+ 		spi2 = &ecspi3;
++		spi3 = &ecspi1;
+ 		isi0 = &isi_0;
+ 		isi1 = &isi_1;
+ 		csi0 = &mipi_csi_0;

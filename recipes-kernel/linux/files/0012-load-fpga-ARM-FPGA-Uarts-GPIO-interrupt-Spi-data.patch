@@ -1,0 +1,706 @@
+From 36d60fb9550a329ada849d44974dfdf4fc3ff413 Mon Sep 17 00:00:00 2001
+From: Orel Eliyahu <orel_e@eyal-emi.co.il>
+Date: Tue, 21 Jan 2025 15:48:21 +0200
+Subject: [PATCH] load fpga + ARM-FPGA Uarts+ GPIO interrupt + Spi data
+
+---
+ arch/arm64/boot/dts/freescale/gpio_named.h    |  10 +-
+ .../dts/freescale/imx8mp-evk-dual-os08a20.dts |   4 +-
+ .../freescale/imx8mp-evk-os08a20-ov5640.dts   |   3 +-
+ .../boot/dts/freescale/imx8mp-evk-os08a20.dts |   3 +-
+ .../dts/freescale/imx8mp-evk-rpmsg-lpv.dts    |  10 -
+ .../boot/dts/freescale/imx8mp-evk-rpmsg.dts   | 217 ---------------
+ arch/arm64/boot/dts/freescale/imx8mp-evk.dts  | 260 ++++--------------
+ oe-logs                                       |   2 +-
+ oe-workdir                                    |   2 +-
+ 9 files changed, 64 insertions(+), 447 deletions(-)
+ delete mode 100644 arch/arm64/boot/dts/freescale/imx8mp-evk-rpmsg-lpv.dts
+ delete mode 100644 arch/arm64/boot/dts/freescale/imx8mp-evk-rpmsg.dts
+
+diff --git a/arch/arm64/boot/dts/freescale/gpio_named.h b/arch/arm64/boot/dts/freescale/gpio_named.h
+index f84da9ad5edb..a263fe56d3af 100644
+--- a/arch/arm64/boot/dts/freescale/gpio_named.h
++++ b/arch/arm64/boot/dts/freescale/gpio_named.h
+@@ -3,12 +3,12 @@
+         compatible = "kratos,kratos_station-pm";
+         platform-unique;
+         status = "okay";
+-        pin_numbers = <87 86 85 4>;
+-        pin_names = "PROG", "DONE", "INIT","LAN7800_RESET";
+-        pin_states = < GPIOF_IN GPIOF_OUT_INIT_LOW GPIOF_OUT_INIT_LOW GPIOF_IN>;
+-        pin_init_val = < 0 1 1 1>;  
++        pin_numbers = <13 12 11 15 4>;
++        pin_names = "PROG", "DONE", "INIT","FPGA_LOAD_LOCK","LAN7800_RESET";
++        pin_states = < GPIOF_IN GPIOF_OUT_INIT_LOW GPIOF_OUT_INIT_LOW GPIOF_IN GPIOF_IN>;
++        pin_init_val = < 0 1 1 0 1>;  
+         
+-        interrupt-gpios = <&gpio3 24 IRQ_TYPE_EDGE_RISING>;
++        interrupt-gpios = <&gpio2 17 IRQ_TYPE_EDGE_RISING>;
+        
+     };
+ };
+diff --git a/arch/arm64/boot/dts/freescale/imx8mp-evk-dual-os08a20.dts b/arch/arm64/boot/dts/freescale/imx8mp-evk-dual-os08a20.dts
+index 91acce35065a..08c3f5406433 100644
+--- a/arch/arm64/boot/dts/freescale/imx8mp-evk-dual-os08a20.dts
++++ b/arch/arm64/boot/dts/freescale/imx8mp-evk-dual-os08a20.dts
+@@ -14,7 +14,7 @@
+  */
+ 
+ #include "imx8mp-evk.dts"
+-
++/*
+ &i2c2 {
+ 	/delete-node/ov5640_mipi@3c;
+ 
+@@ -122,3 +122,5 @@ mipi_csi1_ep: endpoint {
+ 		};
+ 	};
+ };
++
++*/
+diff --git a/arch/arm64/boot/dts/freescale/imx8mp-evk-os08a20-ov5640.dts b/arch/arm64/boot/dts/freescale/imx8mp-evk-os08a20-ov5640.dts
+index e720901d8231..5c954eade177 100644
+--- a/arch/arm64/boot/dts/freescale/imx8mp-evk-os08a20-ov5640.dts
++++ b/arch/arm64/boot/dts/freescale/imx8mp-evk-os08a20-ov5640.dts
+@@ -14,7 +14,7 @@
+  */
+ 
+ #include "imx8mp-evk.dts"
+-
++/*
+ &iomuxc {
+ 	pinctrl_csi1_pwn: csi1_pwn_grp {
+ 		fsl,pins = <
+@@ -103,3 +103,4 @@ endpoint {
+ &mipi_csi_1 {
+ 	status = "okay";
+ };
++*/
+diff --git a/arch/arm64/boot/dts/freescale/imx8mp-evk-os08a20.dts b/arch/arm64/boot/dts/freescale/imx8mp-evk-os08a20.dts
+index ba09d52ff63a..e6b723786931 100644
+--- a/arch/arm64/boot/dts/freescale/imx8mp-evk-os08a20.dts
++++ b/arch/arm64/boot/dts/freescale/imx8mp-evk-os08a20.dts
+@@ -16,7 +16,7 @@
+ /dts-v1/;
+ 
+ #include "imx8mp-evk.dts"
+-
++/*
+ &i2c2 {
+ 	/delete-node/ov5640_mipi@3c;
+ 
+@@ -84,3 +84,4 @@ endpoint {
+ &mipi_csi_1 {
+ 	/delete-node/port@1;
+ };
++*/
+diff --git a/arch/arm64/boot/dts/freescale/imx8mp-evk-rpmsg-lpv.dts b/arch/arm64/boot/dts/freescale/imx8mp-evk-rpmsg-lpv.dts
+deleted file mode 100644
+index 4a71d3091571..000000000000
+--- a/arch/arm64/boot/dts/freescale/imx8mp-evk-rpmsg-lpv.dts
++++ /dev/null
+@@ -1,10 +0,0 @@
+-// SPDX-License-Identifier: (GPL-2.0 OR MIT)
+-/*
+- * Copyright 2022 NXP
+- */
+-
+-#include "imx8mp-evk-rpmsg.dts"
+-
+-&rpmsg_audio {
+-    /delete-property/ fsl,enable-lpa;
+-};
+diff --git a/arch/arm64/boot/dts/freescale/imx8mp-evk-rpmsg.dts b/arch/arm64/boot/dts/freescale/imx8mp-evk-rpmsg.dts
+deleted file mode 100644
+index 1488caac03fc..000000000000
+--- a/arch/arm64/boot/dts/freescale/imx8mp-evk-rpmsg.dts
++++ /dev/null
+@@ -1,217 +0,0 @@
+-// SPDX-License-Identifier: (GPL-2.0 OR MIT)
+-/*
+- * Copyright 2020 NXP
+- */
+-
+-/dts-v1/;
+-
+-#include "imx8mp-evk.dts"
+-
+-/ {
+-	aliases {
+-		i2c0 = &i2c1;
+-		i2c1 = &i2c2;
+-		i2c2 = &i2c_rpbus_3;
+-	};
+-
+-	reserved-memory {
+-		#address-cells = <2>;
+-		#size-cells = <2>;
+-		ranges;
+-
+-		m4_reserved: m4@0x80000000 {
+-			no-map;
+-			reg = <0 0x80000000 0 0x1000000>;
+-		};
+-
+-		vdev0vring0: vdev0vring0@55000000 {
+-			reg = <0 0x55000000 0 0x8000>;
+-			no-map;
+-		};
+-
+-		vdev0vring1: vdev0vring1@55008000 {
+-			reg = <0 0x55008000 0 0x8000>;
+-			no-map;
+-		};
+-
+-		vdevbuffer: vdevbuffer@55400000 {
+-			compatible = "shared-dma-pool";
+-			reg = <0 0x55400000 0 0x100000>;
+-			no-map;
+-		};
+-
+-		rsc_table: rsc_table@550ff000 {
+-			reg = <0 0x550ff000 0 0x1000>;
+-			no-map;
+-		};
+-
+-		audio_reserved: audio@0x81000000 {
+-			compatible = "shared-dma-pool";
+-			no-map;
+-			reg = <0 0x81000000 0 0x10000000>;
+-		};
+-
+-		micfil_reserved: mic_rpmsg@91000000 {
+-			compatible = "shared-dma-pool";
+-			no-map;
+-			reg = <0 0x91000000 0 0x100000>;
+-		};
+-	};
+-
+-	sound-wm8960 {
+-		status = "disabled";
+-	};
+-
+-	sound-micfil {
+-		status = "disabled";
+-	};
+-
+-	rpmsg_audio: rpmsg_audio {
+-		compatible = "fsl,imx8mp-rpmsg-audio";
+-		model = "wm8960-audio";
+-		fsl,platform = "rpmsg-audio-channel";
+-		fsl,enable-lpa;
+-		fsl,rpmsg-out;
+-		fsl,rpmsg-in;
+-		assigned-clocks = <&clk IMX8MP_CLK_SAI3>;
+-		assigned-clock-parents = <&clk IMX8MP_AUDIO_PLL1_OUT>;
+-		assigned-clock-rates = <12288000>;
+-		clocks = <&audio_blk_ctrl IMX8MP_CLK_AUDIO_BLK_CTRL_SAI3_IPG>,
+-			 <&audio_blk_ctrl IMX8MP_CLK_AUDIO_BLK_CTRL_SAI3_MCLK1>,
+-			 <&audio_blk_ctrl IMX8MP_CLK_AUDIO_BLK_CTRL_SDMA3_ROOT>,
+-			 <&clk IMX8MP_AUDIO_PLL1_OUT>,
+-			 <&clk IMX8MP_AUDIO_PLL2_OUT>;
+-		clock-names = "ipg", "mclk", "dma", "pll8k", "pll11k";
+-		audio-codec = <&codec>;
+-		memory-region = <&audio_reserved>;
+-		power-domains = <&audiomix_pd>;
+-		audio-routing =
+-			"LINPUT1", "MICB",
+-			"LINPUT3", "MICB";
+-		status = "okay";
+-	};
+-
+-	rpmsg_micfil: rpmsg_micfil {
+-		compatible = "fsl,imx8mp-rpmsg-audio";
+-		model = "micfil-audio";
+-		fsl,platform = "rpmsg-micfil-channel";
+-		fsl,enable-lpa;
+-		fsl,rpmsg-in;
+-		assigned-clocks = <&clk IMX8MP_CLK_PDM>;
+-		assigned-clock-parents = <&clk IMX8MP_AUDIO_PLL1_OUT>;
+-		assigned-clock-rates = <196608000>;
+-		clocks = <&audio_blk_ctrl IMX8MP_CLK_AUDIO_BLK_CTRL_PDM_IPG>,
+-			 <&audio_blk_ctrl IMX8MP_CLK_AUDIO_BLK_CTRL_PDM_ROOT>,
+-			 <&audio_blk_ctrl IMX8MP_CLK_AUDIO_BLK_CTRL_SDMA3_ROOT>,
+-			 <&clk IMX8MP_AUDIO_PLL1_OUT>,
+-			 <&clk IMX8MP_AUDIO_PLL2_OUT>;
+-		clock-names = "ipg", "mclk", "dma", "pll8k", "pll11k";
+-		memory-region = <&micfil_reserved>;
+-		power-domains = <&audiomix_pd>;
+-		status = "okay";
+-	};
+-
+-	imx8mp-cm7 {
+-		compatible = "fsl,imx8mn-cm7";
+-		rsc-da = <0x55000000>;
+-		clocks = <&clk IMX8MP_CLK_M7_DIV>;
+-		mbox-names = "tx", "rx", "rxdb";
+-		mboxes = <&mu 0 1
+-			  &mu 1 1
+-			  &mu 3 1>;
+-		memory-region = <&vdevbuffer>, <&vdev0vring0>, <&vdev0vring1>, <&rsc_table>;
+-		status = "okay";
+-		fsl,startup-delay-ms = <500>;
+-	};
+-};
+-
+-/*
+- * ATTENTION: M7 may use IPs like below
+- * ECSPI0/ECSPI2, FLEXCAN, GPIO1/GPIO5, GPT1, I2C3, I2S3, UART4,
+- * PWM4, SDMA1/SDMA2
+- */
+-&ecspi2 {
+-	status = "disabled";
+-};
+-
+-&flexcan1 {
+-	status = "disabled";
+-};
+-
+-&flexspi {
+-	status = "disabled";
+-};
+-
+-/delete-node/ &i2c3;
+-
+-&i2c_rpbus_3 {
+-	compatible = "fsl,i2c-rpbus";
+-	#address-cells = <1>;
+-	#size-cells = <0>;
+-	status = "okay";
+-
+-	pca6416: gpio@20 {
+-		compatible = "ti,tca6416";
+-		reg = <0x20>;
+-		gpio-controller;
+-		#gpio-cells = <2>;
+-	};
+-
+-	ov5640_1: ov5640_mipi@3c {
+-		compatible = "ovti,ov5640";
+-		reg = <0x3c>;
+-		pinctrl-names = "default";
+-		pinctrl-0 = <&pinctrl_csi0_pwn>, <&pinctrl_csi0_rst>;
+-		clocks = <&clk IMX8MP_CLK_IPP_DO_CLKO2>;
+-		clock-names = "xclk";
+-		assigned-clocks = <&clk IMX8MP_CLK_IPP_DO_CLKO2>;
+-		assigned-clock-parents = <&clk IMX8MP_CLK_24M>;
+-		assigned-clock-rates = <24000000>;
+-		csi_id = <0>;
+-		powerdown-gpios = <&gpio4 1 GPIO_ACTIVE_HIGH>;
+-		reset-gpios = <&gpio4 0 GPIO_ACTIVE_LOW>;
+-		mclk = <24000000>;
+-		mclk_source = <0>;
+-		mipi_csi;
+-		status = "disabled";
+-
+-		port {
+-			ov5640_mipi_1_ep: endpoint {
+-				remote-endpoint = <&mipi_csi1_ep>;
+-				data-lanes = <1 2>;
+-				clock-lanes = <0>;
+-			};
+-		};
+-	};
+-
+-	codec: wm8960@1a {
+-		compatible = "wlf,wm8960,lpa";
+-		reg = <0x1a>;
+-		wlf,shared-lrclk;
+-		SPKVDD1-supply = <&reg_audio_pwr>;
+-	};
+-};
+-
+-&pwm4{
+-	status = "disabled";
+-};
+-
+-&sai3 {
+-	status = "disabled";
+-};
+-
+-&micfil {
+-	status = "disabled";
+-};
+-
+-&sdma3{
+-	status = "disabled";
+-};
+-
+-&uart3 {
+-    status = "disabled";
+-};
+-
+-&uart4 {
+-	status = "disabled";
+-};
+diff --git a/arch/arm64/boot/dts/freescale/imx8mp-evk.dts b/arch/arm64/boot/dts/freescale/imx8mp-evk.dts
+index c78f3f6f59f2..6757da8161de 100644
+--- a/arch/arm64/boot/dts/freescale/imx8mp-evk.dts
++++ b/arch/arm64/boot/dts/freescale/imx8mp-evk.dts
+@@ -281,6 +281,22 @@ &aud2htx {
+ 	status = "okay";
+ };
+ 
++&ecspi3 {
++	#address-cells = <1>;
++	#size-cells = <0>;
++	fsl,spi-num-chipselects = <1>;
++	pinctrl-names = "default";
++	pinctrl-0 = <&pinctrl_ecspi3 &pinctrl_ecspi3_cs>;
++	cs-gpios = <&gpio5 25 GPIO_ACTIVE_LOW>;
++	status = "okay";
++
++	spidev2: spi@0 {
++		reg = <0>;
++		compatible = "rohm,dh2228fv";
++		spi-max-frequency = <500000>;
++	};
++};
++
+ &ecspi2 {
+ 	#address-cells = <1>;
+ 	#size-cells = <0>;
+@@ -534,32 +550,6 @@ it6263_in: endpoint {
+ 		};
+ 	};
+ 
+-	ov5640_0: ov5640_mipi@3c {
+-		compatible = "ovti,ov5640";
+-		reg = <0x3c>;
+-		pinctrl-names = "default";
+-		pinctrl-0 = <&pinctrl_csi0_pwn>, <&pinctrl_csi0_rst>, <&pinctrl_csi_mclk>;
+-		clocks = <&clk IMX8MP_CLK_IPP_DO_CLKO2>;
+-		clock-names = "xclk";
+-		assigned-clocks = <&clk IMX8MP_CLK_IPP_DO_CLKO2>;
+-		assigned-clock-parents = <&clk IMX8MP_CLK_24M>;
+-		assigned-clock-rates = <24000000>;
+-		csi_id = <0>;
+-		powerdown-gpios = <&gpio2 11 GPIO_ACTIVE_HIGH>;
+-		reset-gpios = <&gpio1 6 GPIO_ACTIVE_LOW>;
+-		mclk = <24000000>;
+-		mclk_source = <0>;
+-		mipi_csi;
+-		status = "okay";
+-
+-		port {
+-			ov5640_mipi_0_ep: endpoint {
+-				remote-endpoint = <&mipi_csi0_ep>;
+-				data-lanes = <1 2>;
+-				clock-lanes = <0>;
+-			};
+-		};
+-	};
+ 
+ 	ptn5110: tcpc@50 {
+ 		compatible = "nxp,ptn5110";
+@@ -626,32 +616,7 @@ codec: wm8960@1a {
+ 		SPKVDD1-supply = <&reg_audio_pwr>;
+ 	};
+ 
+-	ov5640_1: ov5640_mipi@3c {
+-		compatible = "ovti,ov5640";
+-		reg = <0x3c>;
+-		pinctrl-names = "default";
+-		pinctrl-0 = <&pinctrl_csi0_pwn>, <&pinctrl_csi0_rst>, <&pinctrl_csi_mclk>;
+-		clocks = <&clk IMX8MP_CLK_IPP_DO_CLKO2>;
+-		clock-names = "xclk";
+-		assigned-clocks = <&clk IMX8MP_CLK_IPP_DO_CLKO2>;
+-		assigned-clock-parents = <&clk IMX8MP_CLK_24M>;
+-		assigned-clock-rates = <24000000>;
+-		csi_id = <0>;
+-		powerdown-gpios = <&gpio4 1 GPIO_ACTIVE_HIGH>;
+-		reset-gpios = <&gpio4 0 GPIO_ACTIVE_LOW>;
+-		mclk = <24000000>;
+-		mclk_source = <0>;
+-		mipi_csi;
+-		status = "disabled";
+-
+-		port {
+-			ov5640_mipi_1_ep: endpoint {
+-				remote-endpoint = <&mipi_csi1_ep>;
+-				data-lanes = <1 2>;
+-				clock-lanes = <0>;
+-			};
+-		};
+-	};
++	
+ };
+ 
+ &irqsteer_hdmi {
+@@ -822,7 +787,7 @@ &uart1 { /* BT */
+ 	pinctrl-0 = <&pinctrl_uart1>;
+ 	assigned-clocks = <&clk IMX8MP_CLK_UART1>;
+ 	assigned-clock-parents = <&clk IMX8MP_SYS_PLL1_80M>;
+-	status = "okay";
++	status = "disabled";
+ };
+ 
+ &uart2 {
+@@ -899,30 +864,8 @@ &uart4 {
+        status = "okay";
+ };
+ 
+-&usdhc2 {
+-	assigned-clocks = <&clk IMX8MP_CLK_USDHC2>;
+-	assigned-clock-rates = <400000000>;
+-	pinctrl-names = "default", "state_100mhz", "state_200mhz";
+-	pinctrl-0 = <&pinctrl_usdhc2>, <&pinctrl_usdhc2_gpio>;
+-	pinctrl-1 = <&pinctrl_usdhc2_100mhz>, <&pinctrl_usdhc2_gpio>;
+-	pinctrl-2 = <&pinctrl_usdhc2_200mhz>, <&pinctrl_usdhc2_gpio>;
+-	cd-gpios = <&gpio2 12 GPIO_ACTIVE_LOW>;
+-	vmmc-supply = <&reg_usdhc2_vmmc>;
+-	bus-width = <4>;
+-	status = "okay";
+-};
+ 
+-&usdhc3 {
+-	assigned-clocks = <&clk IMX8MP_CLK_USDHC3>;
+-	assigned-clock-rates = <400000000>;
+-	pinctrl-names = "default", "state_100mhz", "state_200mhz";
+-	pinctrl-0 = <&pinctrl_usdhc3>;
+-	pinctrl-1 = <&pinctrl_usdhc3_100mhz>;
+-	pinctrl-2 = <&pinctrl_usdhc3_200mhz>;
+-	bus-width = <8>;
+-	non-removable;
+-	status = "okay";
+-};
++
+ 
+ &wdog1 {
+ 	pinctrl-names = "default";
+@@ -943,12 +886,17 @@ MX8MP_IOMUXC_HDMI_HPD__HDMIMIX_HDMI_HPD		0x40000010
+ 			MX8MP_IOMUXC_HDMI_CEC__HDMIMIX_HDMI_CEC		0x40000010
+ 			
+ 			
+-			MX8MP_IOMUXC_SAI5_RXD0__GPIO3_IO21         0x00000106
+-                	MX8MP_IOMUXC_SAI5_RXD1__GPIO3_IO22         0x00000106
+-                	MX8MP_IOMUXC_SAI5_RXD2__GPIO3_IO23         0x00000106
+-                	MX8MP_IOMUXC_SAI5_RXD3__GPIO3_IO24         0x00000106
++
++                	
++                	MX8MP_IOMUXC_GPIO1_IO11__GPIO1_IO11        0x00000106
++                	MX8MP_IOMUXC_GPIO1_IO12__GPIO1_IO12        0x00000106
++                	MX8MP_IOMUXC_GPIO1_IO13__GPIO1_IO13        0x00000106
++                	MX8MP_IOMUXC_GPIO1_IO15__GPIO1_IO15        0x00000106
++                	MX8MP_IOMUXC_SD2_DATA2__GPIO2_IO17         0x00000106
+                 	
+                 	MX8MP_IOMUXC_GPIO1_IO04__GPIO1_IO04        0x00000106
++                	                
++                	
+ 			/*
+ 			 * M.2 pin20 & pin21 need to be set to 11 for 88W9098 to select the
+ 			 * default Reference Clock Frequency
+@@ -965,7 +913,7 @@ MX8MP_IOMUXC_GPIO1_IO01__PWM1_OUT	0x116
+ 
+ 	pinctrl_pwm2: pwm2grp {
+ 		fsl,pins = <
+-			MX8MP_IOMUXC_GPIO1_IO11__PWM2_OUT	0x116
++			MX8MP_IOMUXC_GPIO1_IO01__PWM1_OUT	0x116
+ 		>;
+ 	};
+ 
+@@ -988,6 +936,22 @@ pinctrl_ecspi2_cs: ecspi2cs {
+ 			MX8MP_IOMUXC_ECSPI2_SS0__GPIO5_IO13		0x40000
+ 		>;
+ 	};
++	
++	pinctrl_ecspi3: ecspi3grp {
++		fsl,pins = <
++		        MX8MP_IOMUXC_UART1_RXD__ECSPI3_SCLK        0x00000106
++		        MX8MP_IOMUXC_UART1_TXD__ECSPI3_MOSI        0x00000106
++		        MX8MP_IOMUXC_UART2_RXD__ECSPI3_MISO        0x00000106
++		>;
++	};
++
++	pinctrl_ecspi3_cs: ecspi3cs {
++		fsl,pins = <
++			MX8MP_IOMUXC_UART2_TXD__ECSPI3_SS0         0x00000106
++		>;
++	};
++	
++	
+ 
+ 	pinctrl_eqos: eqosgrp {
+ 		fsl,pins = <
+@@ -1181,10 +1145,8 @@ MX8MP_IOMUXC_GPIO1_IO14__USB2_PWR		0x10
+ 
+ 	pinctrl_uart3: uart3grp {
+ 		fsl,pins = <
+-			MX8MP_IOMUXC_ECSPI1_SCLK__UART3_DCE_RX		0x140
+-			MX8MP_IOMUXC_ECSPI1_MOSI__UART3_DCE_TX		0x140
+-			MX8MP_IOMUXC_ECSPI1_SS0__UART3_DCE_RTS		0x140
+-			MX8MP_IOMUXC_ECSPI1_MISO__UART3_DCE_CTS		0x140
++		MX8MP_IOMUXC_UART3_RXD__UART3_DCE_RX       0x00000106
++                MX8MP_IOMUXC_UART3_TXD__UART3_DCE_TX       0x00000106
+ 		>;
+ 	};
+ 	
+@@ -1203,95 +1165,8 @@ MX8MP_IOMUXC_SAI3_TXD__GPT1_CAPTURE2       0x00000106
+        };
+ 
+ 
+-	pinctrl_usdhc2: usdhc2grp {
+-		fsl,pins = <
+-			MX8MP_IOMUXC_SD2_CLK__USDHC2_CLK	0x190
+-			MX8MP_IOMUXC_SD2_CMD__USDHC2_CMD	0x1d0
+-			MX8MP_IOMUXC_SD2_DATA0__USDHC2_DATA0	0x1d0
+-			MX8MP_IOMUXC_SD2_DATA1__USDHC2_DATA1	0x1d0
+-			MX8MP_IOMUXC_SD2_DATA2__USDHC2_DATA2	0x1d0
+-			MX8MP_IOMUXC_SD2_DATA3__USDHC2_DATA3	0x1d0
+-		
+-		>;
+-	};
+-
+-	pinctrl_usdhc2_100mhz: usdhc2-100mhzgrp {
+-		fsl,pins = <
+-			MX8MP_IOMUXC_SD2_CLK__USDHC2_CLK	0x194
+-			MX8MP_IOMUXC_SD2_CMD__USDHC2_CMD	0x1d4
+-			MX8MP_IOMUXC_SD2_DATA0__USDHC2_DATA0	0x1d4
+-			MX8MP_IOMUXC_SD2_DATA1__USDHC2_DATA1	0x1d4
+-			MX8MP_IOMUXC_SD2_DATA2__USDHC2_DATA2	0x1d4
+-			MX8MP_IOMUXC_SD2_DATA3__USDHC2_DATA3	0x1d4
+-			MX8MP_IOMUXC_GPIO1_IO04__USDHC2_VSELECT 0xc0
+-		>;
+-	};
+-
+-	pinctrl_usdhc2_200mhz: usdhc2-200mhzgrp {
+-		fsl,pins = <
+-			MX8MP_IOMUXC_SD2_CLK__USDHC2_CLK	0x196
+-			MX8MP_IOMUXC_SD2_CMD__USDHC2_CMD	0x1d6
+-			MX8MP_IOMUXC_SD2_DATA0__USDHC2_DATA0	0x1d6
+-			MX8MP_IOMUXC_SD2_DATA1__USDHC2_DATA1	0x1d6
+-			MX8MP_IOMUXC_SD2_DATA2__USDHC2_DATA2	0x1d6
+-			MX8MP_IOMUXC_SD2_DATA3__USDHC2_DATA3	0x1d6
+-			MX8MP_IOMUXC_GPIO1_IO04__USDHC2_VSELECT 0xc0
+-		>;
+-	};
+-
+-	pinctrl_usdhc2_gpio: usdhc2gpiogrp {
+-		fsl,pins = <
+-			MX8MP_IOMUXC_SD2_CD_B__GPIO2_IO12	0x1c4
+-		>;
+-	};
+-
+-	pinctrl_usdhc3: usdhc3grp {
+-		fsl,pins = <
+-			MX8MP_IOMUXC_NAND_WE_B__USDHC3_CLK	0x190
+-			MX8MP_IOMUXC_NAND_WP_B__USDHC3_CMD	0x1d0
+-			MX8MP_IOMUXC_NAND_DATA04__USDHC3_DATA0	0x1d0
+-			MX8MP_IOMUXC_NAND_DATA05__USDHC3_DATA1	0x1d0
+-			MX8MP_IOMUXC_NAND_DATA06__USDHC3_DATA2	0x1d0
+-			MX8MP_IOMUXC_NAND_DATA07__USDHC3_DATA3	0x1d0
+-			MX8MP_IOMUXC_NAND_RE_B__USDHC3_DATA4	0x1d0
+-			MX8MP_IOMUXC_NAND_CE2_B__USDHC3_DATA5	0x1d0
+-			MX8MP_IOMUXC_NAND_CE3_B__USDHC3_DATA6	0x1d0
+-			MX8MP_IOMUXC_NAND_CLE__USDHC3_DATA7	0x1d0
+-			MX8MP_IOMUXC_NAND_CE1_B__USDHC3_STROBE	0x190
+-		>;
+-	};
+-
+-	pinctrl_usdhc3_100mhz: usdhc3-100mhzgrp {
+-		fsl,pins = <
+-			MX8MP_IOMUXC_NAND_WE_B__USDHC3_CLK	0x194
+-			MX8MP_IOMUXC_NAND_WP_B__USDHC3_CMD	0x1d4
+-			MX8MP_IOMUXC_NAND_DATA04__USDHC3_DATA0	0x1d4
+-			MX8MP_IOMUXC_NAND_DATA05__USDHC3_DATA1	0x1d4
+-			MX8MP_IOMUXC_NAND_DATA06__USDHC3_DATA2	0x1d4
+-			MX8MP_IOMUXC_NAND_DATA07__USDHC3_DATA3	0x1d4
+-			MX8MP_IOMUXC_NAND_RE_B__USDHC3_DATA4	0x1d4
+-			MX8MP_IOMUXC_NAND_CE2_B__USDHC3_DATA5	0x1d4
+-			MX8MP_IOMUXC_NAND_CE3_B__USDHC3_DATA6	0x1d4
+-			MX8MP_IOMUXC_NAND_CLE__USDHC3_DATA7	0x1d4
+-			MX8MP_IOMUXC_NAND_CE1_B__USDHC3_STROBE	0x194
+-		>;
+-	};
+-
+-	pinctrl_usdhc3_200mhz: usdhc3-200mhzgrp {
+-		fsl,pins = <
+-			MX8MP_IOMUXC_NAND_WE_B__USDHC3_CLK	0x196
+-			MX8MP_IOMUXC_NAND_WP_B__USDHC3_CMD	0x1d6
+-			MX8MP_IOMUXC_NAND_DATA04__USDHC3_DATA0	0x1d6
+-			MX8MP_IOMUXC_NAND_DATA05__USDHC3_DATA1	0x1d6
+-			MX8MP_IOMUXC_NAND_DATA06__USDHC3_DATA2	0x1d6
+-			MX8MP_IOMUXC_NAND_DATA07__USDHC3_DATA3	0x1d6
+-			MX8MP_IOMUXC_NAND_RE_B__USDHC3_DATA4	0x1d6
+-			MX8MP_IOMUXC_NAND_CE2_B__USDHC3_DATA5	0x1d6
+-			MX8MP_IOMUXC_NAND_CE3_B__USDHC3_DATA6	0x1d6
+-			MX8MP_IOMUXC_NAND_CLE__USDHC3_DATA7	0x1d6
+-			MX8MP_IOMUXC_NAND_CE1_B__USDHC3_STROBE	0x196
+-		>;
+-	};
++	
++	
+ 
+ 	pinctrl_wdog: wdoggrp {
+ 		fsl,pins = <
+@@ -1311,11 +1186,7 @@ MX8MP_IOMUXC_GPIO1_IO06__GPIO1_IO06		0x10
+ 		>;
+ 	};
+ 
+-	pinctrl_csi_mclk: csi_mclk_grp {
+-		fsl,pins = <
+-			MX8MP_IOMUXC_GPIO1_IO15__CCM_CLKO2	0x50
+-		>;
+-	};
++	
+ };
+ 
+ &vpu_g1 {
+@@ -1350,39 +1221,8 @@ &mix_gpu_ml {
+ 	status = "okay";
+ };
+ 
+-&mipi_csi_0 {
+-	#address-cells = <1>;
+-	#size-cells = <0>;
+-	status = "okay";
+ 
+-	port@0 {
+-		reg = <0>;
+-		mipi_csi0_ep: endpoint {
+-			remote-endpoint = <&ov5640_mipi_0_ep>;
+-			data-lanes = <2>;
+-			csis-hs-settle = <13>;
+-			csis-clk-settle = <2>;
+-			csis-wclk;
+-		};
+-	};
+-};
+ 
+-&mipi_csi_1 {
+-	#address-cells = <1>;
+-	#size-cells = <0>;
+-	status = "disabled";
+-
+-	port@1 {
+-		reg = <1>;
+-		mipi_csi1_ep: endpoint {
+-			remote-endpoint = <&ov5640_mipi_1_ep>;
+-			data-lanes = <2>;
+-			csis-hs-settle = <13>;
+-			csis-clk-settle = <2>;
+-			csis-wclk;
+-		};
+-	};
+-};
+ 
+ &cameradev {
+ 	status = "okay";
+diff --git a/oe-logs b/oe-logs
+index 884d956d9077..3f331defe2cc 120000
+--- a/oe-logs
++++ b/oe-logs
+@@ -1 +1 @@
+-/media/superuser/GlobalStorage/Projects/3043-50/users/orel_e/decoder_pcb_yocto/build/tmp/work/imx8mp_lpddr4_evk-poky-linux/linux-imx/5.15.71+git999-r0/temp
+\ No newline at end of file
++/media/superuser/GlobalStorage/Projects/3043-50/users/orel_e/decoder_pcb_yocto/build/tmp/work/imx8mpevk-poky-linux/linux-imx/5.15.71+git999-r0/temp
+\ No newline at end of file
+diff --git a/oe-workdir b/oe-workdir
+index 0e46dcdd93f9..bfc168ba2fb5 120000
+--- a/oe-workdir
++++ b/oe-workdir
+@@ -1 +1 @@
+-/media/superuser/GlobalStorage/Projects/3043-50/users/orel_e/decoder_pcb_yocto/build/tmp/work/imx8mp_lpddr4_evk-poky-linux/linux-imx/5.15.71+git999-r0
+\ No newline at end of file
++/media/superuser/GlobalStorage/Projects/3043-50/users/orel_e/decoder_pcb_yocto/build/tmp/work/imx8mpevk-poky-linux/linux-imx/5.15.71+git999-r0
+\ No newline at end of file

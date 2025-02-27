@@ -1,0 +1,9 @@
+[Unit]
+Description=BIT Service
+
+[Service]
+ExecStart=/usr/bin/bit.sh
+
+[Install]
+WantedBy=multi-user.target
+

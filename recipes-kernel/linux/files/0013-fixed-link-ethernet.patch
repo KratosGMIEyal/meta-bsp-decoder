@@ -1,0 +1,177 @@
+From 22f8b885c12a5b163b69bae41c9d713a4222bd4d Mon Sep 17 00:00:00 2001
+From: Orel Eliyahu <orel_e@eyal-emi.co.il>
+Date: Wed, 22 Jan 2025 14:35:39 +0200
+Subject: [PATCH] fixed link ethernet
+
+---
+ .../boot/dts/freescale/imx8mp-evk-dpdk.dts    |  6 +-
+ .../dts/freescale/imx8mp-evk-rpmsg-lpv.dts    |  9 ++
+ .../boot/dts/freescale/imx8mp-evk-rpmsg.dts   |  9 ++
+ arch/arm64/boot/dts/freescale/imx8mp-evk.dts  | 93 ++-----------------
+ 4 files changed, 27 insertions(+), 90 deletions(-)
+ create mode 100644 arch/arm64/boot/dts/freescale/imx8mp-evk-rpmsg-lpv.dts
+ create mode 100644 arch/arm64/boot/dts/freescale/imx8mp-evk-rpmsg.dts
+
+diff --git a/arch/arm64/boot/dts/freescale/imx8mp-evk-dpdk.dts b/arch/arm64/boot/dts/freescale/imx8mp-evk-dpdk.dts
+index 68616377278d..d43efe678a6b 100644
+--- a/arch/arm64/boot/dts/freescale/imx8mp-evk-dpdk.dts
++++ b/arch/arm64/boot/dts/freescale/imx8mp-evk-dpdk.dts
+@@ -5,11 +5,7 @@
+ 
+ #include "imx8mp-evk.dts"
+ 
+-&ethphy1 {
+-	/delete-property/ reset-gpios;
+-	/delete-property/ reset-assert-us;
+-	/delete-property/ reset-deassert-us;
+-};
++
+ 
+ &fec {
+ 	compatible = "fsl,imx8mm-fec-uio";
+diff --git a/arch/arm64/boot/dts/freescale/imx8mp-evk-rpmsg-lpv.dts b/arch/arm64/boot/dts/freescale/imx8mp-evk-rpmsg-lpv.dts
+new file mode 100644
+index 000000000000..db1c5f44e62a
+--- /dev/null
++++ b/arch/arm64/boot/dts/freescale/imx8mp-evk-rpmsg-lpv.dts
+@@ -0,0 +1,9 @@
++// SPDX-License-Identifier: (GPL-2.0+ OR MIT)
++/*
++ * Copyright 2019 NXP
++ */
++
++/dts-v1/;
++
++
++#include "imx8mp.dtsi"
+diff --git a/arch/arm64/boot/dts/freescale/imx8mp-evk-rpmsg.dts b/arch/arm64/boot/dts/freescale/imx8mp-evk-rpmsg.dts
+new file mode 100644
+index 000000000000..db1c5f44e62a
+--- /dev/null
++++ b/arch/arm64/boot/dts/freescale/imx8mp-evk-rpmsg.dts
+@@ -0,0 +1,9 @@
++// SPDX-License-Identifier: (GPL-2.0+ OR MIT)
++/*
++ * Copyright 2019 NXP
++ */
++
++/dts-v1/;
++
++
++#include "imx8mp.dtsi"
+diff --git a/arch/arm64/boot/dts/freescale/imx8mp-evk.dts b/arch/arm64/boot/dts/freescale/imx8mp-evk.dts
+index 6757da8161de..de76429f718a 100644
+--- a/arch/arm64/boot/dts/freescale/imx8mp-evk.dts
++++ b/arch/arm64/boot/dts/freescale/imx8mp-evk.dts
+@@ -317,103 +317,26 @@ &eqos {
+ 	pinctrl-names = "default";
+ 	pinctrl-0 = <&pinctrl_eqos>;
+ 	phy-mode = "rgmii-id";
+-	phy-handle = <&ethphy0>;
+-	snps,force_thresh_dma_mode;
+-	snps,mtl-tx-config = <&mtl_tx_setup>;
+-	snps,mtl-rx-config = <&mtl_rx_setup>;
+ 	status = "okay";
+ 
+-	mdio {
+-		compatible = "snps,dwmac-mdio";
+-		#address-cells = <1>;
+-		#size-cells = <0>;
+-
+-		ethphy0: ethernet-phy@1 {
+-			compatible = "ethernet-phy-ieee802.3-c22";
+-			reg = <1>;
+-			eee-broken-1000t;
+-			realtek,clkout-disable;
+-		};
+-	};
++         fixed-link {
++		speed = <1000>;
++		full-duplex;
++    	};
+ 
+-	mtl_tx_setup: tx-queues-config {
+-		snps,tx-queues-to-use = <5>;
+-		snps,tx-sched-sp;
+-		queue0 {
+-			snps,dcb-algorithm;
+-			snps,priority = <0x1>;
+-		};
+-		queue1 {
+-			snps,dcb-algorithm;
+-			snps,priority = <0x2>;
+-		};
+-		queue2 {
+-			snps,dcb-algorithm;
+-			snps,priority = <0x4>;
+-		};
+-		queue3 {
+-			snps,dcb-algorithm;
+-			snps,priority = <0x8>;
+-		};
+-		queue4 {
+-			snps,dcb-algorithm;
+-			snps,priority = <0xf0>;
+-		};
+-	};
+-	mtl_rx_setup: rx-queues-config {
+-		snps,rx-queues-to-use = <5>;
+-		snps,rx-sched-sp;
+-		queue0 {
+-			snps,dcb-algorithm;
+-			snps,priority = <0x1>;
+-			snps,map-to-dma-channel = <0>;
+-		};
+-		queue1 {
+-			snps,dcb-algorithm;
+-			snps,priority = <0x2>;
+-			snps,map-to-dma-channel = <1>;
+-		};
+-		queue2 {
+-			snps,dcb-algorithm;
+-			snps,priority = <0x4>;
+-			snps,map-to-dma-channel = <2>;
+-		};
+-		queue3 {
+-			snps,dcb-algorithm;
+-			snps,priority = <0x8>;
+-			snps,map-to-dma-channel = <3>;
+-		};
+-		queue4 {
+-			snps,dcb-algorithm;
+-			snps,priority = <0xf0>;
+-			snps,map-to-dma-channel = <4>;
+-		};
+-	};
+ };
+ 
+ &fec {
+ 	pinctrl-names = "default";
+ 	pinctrl-0 = <&pinctrl_fec>;
+ 	phy-mode = "rgmii-id";
+-	phy-handle = <&ethphy1>;
+ 	fsl,magic-packet;
+ 	status = "okay";
+ 
+-	mdio {
+-		#address-cells = <1>;
+-		#size-cells = <0>;
+-
+-		ethphy1: ethernet-phy@1 {
+-			compatible = "ethernet-phy-ieee802.3-c22";
+-			reg = <1>;
+-			eee-broken-1000t;
+-			reset-gpios = <&gpio4 2 GPIO_ACTIVE_LOW>;
+-			reset-assert-us = <10000>;
+-			reset-deassert-us = <80000>;
+-			realtek,aldps-enable;
+-			realtek,clkout-disable;
+-		};
+-	};
++         fixed-link {
++		speed = <1000>;
++		full-duplex;
++    	};
+ };
+ 
+ &i2c1 {

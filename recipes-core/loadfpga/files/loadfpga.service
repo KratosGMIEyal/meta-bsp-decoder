@@ -1,0 +1,9 @@
+[Unit]
+Description=LoadFpga Service
+
+[Service]
+ExecStart=/usr/bin/loadfpga.sh
+
+[Install]
+WantedBy=multi-user.target
+

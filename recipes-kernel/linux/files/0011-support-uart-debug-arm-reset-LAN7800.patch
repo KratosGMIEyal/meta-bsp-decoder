@@ -1,0 +1,104 @@
+From fc5183930b0261f0350a00a55667b0b6b1f13623 Mon Sep 17 00:00:00 2001
+From: Orel Eliyahu <orel_e@eyal-emi.co.il>
+Date: Thu, 16 Jan 2025 13:17:45 +0200
+Subject: [PATCH] support uart debug arm & reset LAN7800
+
+---
+ arch/arm64/boot/dts/freescale/gpio_named.h   |  8 ++++----
+ arch/arm64/boot/dts/freescale/imx8mp-evk.dts | 16 +++++++++-------
+ oe-logs                                      |  2 +-
+ oe-workdir                                   |  2 +-
+ 4 files changed, 15 insertions(+), 13 deletions(-)
+
+diff --git a/arch/arm64/boot/dts/freescale/gpio_named.h b/arch/arm64/boot/dts/freescale/gpio_named.h
+index 7f178fe5a6f2..f84da9ad5edb 100644
+--- a/arch/arm64/boot/dts/freescale/gpio_named.h
++++ b/arch/arm64/boot/dts/freescale/gpio_named.h
+@@ -3,10 +3,10 @@
+         compatible = "kratos,kratos_station-pm";
+         platform-unique;
+         status = "okay";
+-        pin_numbers = <87 86 85>;
+-        pin_names = "PROG", "DONE", "INIT";
+-        pin_states = < GPIOF_IN GPIOF_OUT_INIT_LOW GPIOF_OUT_INIT_LOW>;
+-        pin_init_val = < 0 1 1>;  
++        pin_numbers = <87 86 85 4>;
++        pin_names = "PROG", "DONE", "INIT","LAN7800_RESET";
++        pin_states = < GPIOF_IN GPIOF_OUT_INIT_LOW GPIOF_OUT_INIT_LOW GPIOF_IN>;
++        pin_init_val = < 0 1 1 1>;  
+         
+         interrupt-gpios = <&gpio3 24 IRQ_TYPE_EDGE_RISING>;
+        
+diff --git a/arch/arm64/boot/dts/freescale/imx8mp-evk.dts b/arch/arm64/boot/dts/freescale/imx8mp-evk.dts
+index 4adf12c4c979..c78f3f6f59f2 100644
+--- a/arch/arm64/boot/dts/freescale/imx8mp-evk.dts
++++ b/arch/arm64/boot/dts/freescale/imx8mp-evk.dts
+@@ -32,8 +32,7 @@ status {
+ 
+ 	memory@40000000 {
+ 		device_type = "memory";
+-		reg = <0x0 0x40000000 0 0xc0000000>,
+-		      <0x1 0x00000000 0 0xc0000000>;
++		reg = <0x40000000 0x40000000>;
+ 	};
+ 	
+ 	gpt1: timer@302d0000 {
+@@ -948,6 +947,8 @@ MX8MP_IOMUXC_SAI5_RXD0__GPIO3_IO21         0x00000106
+                 	MX8MP_IOMUXC_SAI5_RXD1__GPIO3_IO22         0x00000106
+                 	MX8MP_IOMUXC_SAI5_RXD2__GPIO3_IO23         0x00000106
+                 	MX8MP_IOMUXC_SAI5_RXD3__GPIO3_IO24         0x00000106
++                	
++                	MX8MP_IOMUXC_GPIO1_IO04__GPIO1_IO04        0x00000106
+ 			/*
+ 			 * M.2 pin20 & pin21 need to be set to 11 for 88W9098 to select the
+ 			 * default Reference Clock Frequency
+@@ -1147,8 +1148,8 @@ MX8MP_IOMUXC_GPIO1_IO09__GPIO1_IO09		0x16
+ 
+ 	pinctrl_uart1: uart1grp {
+ 		fsl,pins = <
+-			MX8MP_IOMUXC_SAI3_TXFS__UART2_DCE_RX	0x140
+-			MX8MP_IOMUXC_SAI3_TXC__UART2_DCE_TX	0x140
++			MX8MP_IOMUXC_UART2_RXD__UART2_DCE_RX	0x140
++			MX8MP_IOMUXC_UART2_TXD__UART2_DCE_TX	0x140
+ 		>;
+ 	};
+ 
+@@ -1166,8 +1167,9 @@ MX8MP_IOMUXC_SAI1_MCLK__GPIO4_IO20	0x16
+ 
+ 	pinctrl_uart2: uart2grp {
+ 		fsl,pins = <
+-			MX8MP_IOMUXC_UART2_RXD__UART2_DCE_RX	0x140
+-			MX8MP_IOMUXC_UART2_TXD__UART2_DCE_TX	0x140
++			MX8MP_IOMUXC_SAI3_TXFS__UART2_DCE_RX	0x140
++			MX8MP_IOMUXC_SAI3_TXC__UART2_DCE_TX	0x140
++
+ 		>;
+ 	};
+ 
+@@ -1209,7 +1211,7 @@ MX8MP_IOMUXC_SD2_DATA0__USDHC2_DATA0	0x1d0
+ 			MX8MP_IOMUXC_SD2_DATA1__USDHC2_DATA1	0x1d0
+ 			MX8MP_IOMUXC_SD2_DATA2__USDHC2_DATA2	0x1d0
+ 			MX8MP_IOMUXC_SD2_DATA3__USDHC2_DATA3	0x1d0
+-			MX8MP_IOMUXC_GPIO1_IO04__USDHC2_VSELECT	0xc0
++		
+ 		>;
+ 	};
+ 
+diff --git a/oe-logs b/oe-logs
+index 6c08ea361da6..884d956d9077 120000
+--- a/oe-logs
++++ b/oe-logs
+@@ -1 +1 @@
+-/home/orel/Downloads/Petalinux20231/Projects/DLP-AR/yocto140824/build/tmp/work/imx8mpevk-poky-linux/linux-imx/5.15.71+git999-r0/temp
+\ No newline at end of file
++/media/superuser/GlobalStorage/Projects/3043-50/users/orel_e/decoder_pcb_yocto/build/tmp/work/imx8mp_lpddr4_evk-poky-linux/linux-imx/5.15.71+git999-r0/temp
+\ No newline at end of file
+diff --git a/oe-workdir b/oe-workdir
+index a49f7219afab..0e46dcdd93f9 120000
+--- a/oe-workdir
++++ b/oe-workdir
+@@ -1 +1 @@
+-/home/orel/Downloads/Petalinux20231/Projects/DLP-AR/yocto140824/build/tmp/work/imx8mpevk-poky-linux/linux-imx/5.15.71+git999-r0
+\ No newline at end of file
++/media/superuser/GlobalStorage/Projects/3043-50/users/orel_e/decoder_pcb_yocto/build/tmp/work/imx8mp_lpddr4_evk-poky-linux/linux-imx/5.15.71+git999-r0
+\ No newline at end of file
